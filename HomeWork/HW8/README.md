@@ -1,0 +1,1 @@
+If by typing "deno run -A app.js" didn't start the server then input these instead "deno run --allow-net --allow-read app.js"

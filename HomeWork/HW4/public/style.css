@@ -9,7 +9,7 @@ body {
     padding: 20px;
     font-size: 16px;
     background-color: #eaafc8;
-    border: 2px solid #ddd;
+    border: 2px solid #654ea3;
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   }
@@ -19,8 +19,8 @@ body {
     margin: 10px 0;
     padding: 15px;
     border-radius: 5px;
-    border: 1px solid #ccc;
-    background-color: #fff;
+    border: 1px solid #654ea3;
+    background-color: #eaafc8;
   }
   
   .button {
