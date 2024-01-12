@@ -44,13 +44,13 @@ export function layout(title, content) {
         border: 1px solid #F7CAC9;
         border-top-color: #B3CEE5;
         border-left-color: #B3CEE5;
-        border-radius: 2px;
-        padding: 15px;
+        border-radius: 1.5px;
+        padding: 8px;
         font-size: .8em;
       }
   
       input[type=text],input[type=password] {
-        width: 500px;
+        width: 150px;
       }
     </style>
   </head>

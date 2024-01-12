@@ -1,15 +1,11 @@
-
 import { Application, Router } from "https://deno.land/x/oak/mod.ts";
 import * as render from './render.js';
+import { users, posts } from './data.js';
 
 const router = new Router();
 const app = new Application();
 
-let user = null;
-const contacts = [
-  { id: 1, name: 'John Doe', phone: '123-456-7890' },
-  { id: 2, name: 'Jane Doe', phone: '987-654-3210' },
-];
+let currentUser = null;
 
 router
   .get('/', home)
@@ -18,16 +14,18 @@ router
   .get('/login', loginUi)
   .post('/login', login)
   .get('/logout', logout)
-  .get('/contacts/search', search)
-  .get('/contacts/new', add)
-  .get('/contacts/delete/:id', deleteConfirmation)
-  .post('/contacts/delete/:id', deleteContact);
+  .get('/posts', listPosts)
+  .get('/posts/new', newPost)
+  .get('/posts/:id', showPost)
+  .get('/posts/delete/:id', deleteConfirmation)
+  .post('/posts/delete/:id', deletePost)
+  .post('/posts', createPost);
 
 app.use(router.routes());
 app.use(router.allowedMethods());
 
 async function home(ctx) {
-  ctx.response.body = await render.home(user);
+  ctx.response.body = await render.home(currentUser);
 }
 
 async function signupUi(ctx) {
@@ -40,11 +38,10 @@ async function signup(ctx) {
     const formData = await body.value;
     const username = formData.get('username');
     const password = formData.get('password');
-    const email = formData.get('email');
-    
-    // Check if the user already exists
+
     if (!userExists(username)) {
-      user = { username, password, email };
+      users.push({ username, password });
+      currentUser = { username };
       ctx.response.body = await render.success();
     } else {
       ctx.response.body = await render.fail({ error: "Username already exists." });
@@ -62,10 +59,9 @@ async function login(ctx) {
     const formData = await body.value;
     const username = formData.get('username');
     const password = formData.get('password');
-    
-    // Check if the user exists and the password is correct
+
     if (userExists(username) && checkPassword(username, password)) {
-      user = { username };
+      currentUser = { username };
       ctx.response.redirect('/');
     } else {
       ctx.response.body = await render.loginForm({ error: "Invalid credentials" });
@@ -74,48 +70,84 @@ async function login(ctx) {
 }
 
 async function logout(ctx) {
-  user = null;
+  currentUser = null;
   ctx.response.redirect('/');
 }
 
-async function search(ctx) {
-  ctx.response.body = await render.searchContacts(contacts);
+async function listPosts(ctx) {
+  ctx.response.body = await render.listPosts(posts);
 }
 
-async function add(ctx) {
-  ctx.response.body = await render.addContactForm();
+async function newPost(ctx) {
+  if (currentUser) {
+    ctx.response.body = await render.newPost();
+  } else {
+    ctx.response.body = await render.fail();
+  }
+}
+
+async function showPost(ctx) {
+  const postId = parseInt(ctx.params.id);
+  const post = findPost(postId);
+
+  if (post) {
+    ctx.response.body = await render.showPost(post);
+  } else {
+    ctx.throw(404, 'Post not found');
+  }
 }
 
 async function deleteConfirmation(ctx) {
-  const contactId = parseInt(ctx.params.id);
-  const contact = contacts.find(c => c.id === contactId);
-  
-  if (!contact) {
-    ctx.throw(404, 'Contact not found');
-  }
+  const postId = parseInt(ctx.params.id);
+  const post = findPost(postId);
 
-  ctx.response.body = await render.deleteContactForm(contact);
+  if (post) {
+    ctx.response.body = await render.deleteConfirmation(post);
+  } else {
+    ctx.throw(404, 'Post not found');
+  }
 }
 
-async function deleteContact(ctx) {
-  const contactId = parseInt(ctx.params.id);
-  const index = contacts.findIndex(c => c.id === contactId);
-  
+async function deletePost(ctx) {
+  const postId = parseInt(ctx.params.id);
+  const index = posts.findIndex(p => p.id === postId);
+
   if (index !== -1) {
-    contacts.splice(index, 1);
+    posts.splice(index, 1);
     ctx.response.body = await render.success();
   } else {
     ctx.response.body = await render.fail();
   }
 }
 
+async function createPost(ctx) {
+  const body = ctx.request.body();
+  if (body.type === "form") {
+    const formData = await body.value;
+    const title = formData.get('title');
+    const content = formData.get('content');
+    const postId = posts.length + 1;
+
+    if (currentUser) {
+      posts.push({ id: postId, title, content, author: currentUser.username });
+      ctx.response.redirect('/posts');
+    } else {
+      ctx.throw(404, 'Not logged in!');
+    }
+  }
+}
+
 function userExists(username) {
-  return user && user.username === username;
+  return users.some(u => u.username === username);
 }
 
 function checkPassword(username, password) {
-  // In a real application, you should check against a hashed password
+  const user = users.find(u => u.username === username);
   return user && user.password === password;
+}
+
+function findPost(postId) {
+  return posts.find(p => p.id === postId);
 }
 
 console.log('Server run at http://127.0.0.1:8000');
